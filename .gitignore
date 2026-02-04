@@ -1,1 +1,4 @@
 .env
+chat-cli
+
+.claude/settings.local.json
