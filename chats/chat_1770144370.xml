@@ -1,0 +1,13 @@
+<conversation id="chat_1770144370" created_at="2026-02-03T19:46:10+01:00">
+  <messages>
+    <message role="system" timestamp="2026-02-03T19:46:10+01:00">
+      <content>You are a helpful assistant. Provide clear, concise, and accurate responses.</content>
+    </message>
+    <message role="user" timestamp="2026-02-03T19:46:15+01:00">
+      <content>sdfljf</content>
+    </message>
+    <message role="assistant" timestamp="2026-02-03T19:46:16+01:00">
+      <content>I&#39;m sorry, I am not able to understand your input. How can I assist you today?</content>
+    </message>
+  </messages>
+</conversation>
