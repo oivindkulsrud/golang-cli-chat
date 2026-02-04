@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openai/openai-go/v2"
+	openai "github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
 
@@ -183,10 +183,9 @@ func callOpenAI(ctx context.Context, client openai.Client, conv *Conversation) (
 		}
 	}
 
-	model := defaultModel
 	completion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model:    &model,
-		Messages: &messages,
+		Model:    defaultModel,
+		Messages: messages,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create completion: %w", err)
@@ -200,17 +199,12 @@ func callOpenAI(ctx context.Context, client openai.Client, conv *Conversation) (
 }
 
 func generateImage(ctx context.Context, client openai.Client, prompt string) (string, error) {
-	model := openai.ImageModelDallE3
-	n := int64(1)
-	size := openai.ImageSize1024x1024
-	format := openai.ImageResponseFormatURL
-
 	resp, err := client.Images.Generate(ctx, openai.ImageGenerateParams{
-		Prompt:         &prompt,
-		Model:          &model,
-		N:              &n,
-		Size:           &size,
-		ResponseFormat: &format,
+		Prompt:         prompt,
+		Model:          openai.ImageModelDallE3,
+		N:              openai.F(int64(1)),
+		Size:           "1024x1024",
+		ResponseFormat: "url",
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create image: %w", err)
