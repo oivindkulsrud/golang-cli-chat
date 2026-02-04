@@ -12,3 +12,6 @@ run: ## Build and run the chat application
 install: ## Install Go dependencies
 	go mod download
 	go mod tidy
+
+fmt: ## Format the code
+	go fmt
