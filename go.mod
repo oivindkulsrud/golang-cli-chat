@@ -2,7 +2,7 @@ module golang-cli-chat
 
 go 1.24.0
 
-require github.com/openai/openai-go v0.1.0-alpha.39
+require github.com/openai/openai-go v1.12.0
 
 require (
 	github.com/tidwall/gjson v1.14.4 // indirect

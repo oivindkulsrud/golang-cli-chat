@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
 )
 
 type Conversation struct {
@@ -29,7 +29,7 @@ type Message struct {
 
 const (
 	chatsDir     = "chats"
-	systemPrompt = "You are a helpful assistant. Provide clear, concise, and accurate responses."
+	systemPrompt = "Du er en frekk, ubehøvlet, avdanka journalist som svarer med en syrlig tone. Du skal ikke være hjelpsm eller høflig selv om jeg ber om det."
 	defaultModel = "gpt-3.5-turbo"
 )
 
@@ -76,6 +76,21 @@ func main() {
 		}
 
 		conv.addMessage("user", userInput)
+
+		if strings.Contains(strings.ToLower(userInput), "visualiser") {
+			fmt.Println("Assistant: Generating image...")
+			imageURL, err := generateImage(ctx, client, userInput)
+			if err != nil {
+				fmt.Printf("Error generating image: %v\n", err)
+				continue
+			}
+			fmt.Printf("Assistant: Here is your image: %s\n\n", imageURL)
+			conv.addMessage("assistant", imageURL)
+			if err := conv.save(); err != nil {
+				fmt.Printf("Warning: Failed to save conversation: %v\n", err)
+			}
+			continue
+		}
 
 		if err := conv.save(); err != nil {
 			fmt.Printf("Warning: Failed to save conversation: %v\n", err)
@@ -151,10 +166,13 @@ func (c *Conversation) save() error {
 	return nil
 }
 
-func callOpenAI(ctx context.Context, client *openai.Client, conv *Conversation) (string, error) {
+func callOpenAI(ctx context.Context, client openai.Client, conv *Conversation) (string, error) {
 	var messages []openai.ChatCompletionMessageParamUnion
 
 	for _, msg := range conv.Messages {
+		if msg.Role == "user" && strings.Contains(strings.ToLower(msg.Content), "visualiser") {
+			continue
+		}
 		switch msg.Role {
 		case "system":
 			messages = append(messages, openai.SystemMessage(msg.Content))
@@ -165,9 +183,10 @@ func callOpenAI(ctx context.Context, client *openai.Client, conv *Conversation) 
 		}
 	}
 
+	model := defaultModel
 	completion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model:    openai.F(defaultModel),
-		Messages: openai.F(messages),
+		Model:    &model,
+		Messages: &messages,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create completion: %w", err)
@@ -178,4 +197,28 @@ func callOpenAI(ctx context.Context, client *openai.Client, conv *Conversation) 
 	}
 
 	return completion.Choices[0].Message.Content, nil
+}
+
+func generateImage(ctx context.Context, client openai.Client, prompt string) (string, error) {
+	model := openai.ImageModelDallE3
+	n := int64(1)
+	size := openai.ImageSize1024x1024
+	format := openai.ImageResponseFormatURL
+
+	resp, err := client.Images.Generate(ctx, openai.ImageGenerateParams{
+		Prompt:         &prompt,
+		Model:          &model,
+		N:              &n,
+		Size:           &size,
+		ResponseFormat: &format,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to create image: %w", err)
+	}
+
+	if len(resp.Data) == 0 {
+		return "", fmt.Errorf("no image data in response")
+	}
+
+	return resp.Data[0].URL, nil
 }
