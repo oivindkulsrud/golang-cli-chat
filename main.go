@@ -208,8 +208,10 @@ func callOpenAI(ctx context.Context, client openai.Client, conv *Conversation) (
 }
 
 func generateImage(ctx context.Context, client openai.Client, prompt string) (string, error) {
+	modifiedPrompt := fmt.Sprintf("Et bilde med en frekk og syrlig holdning, som om det var tatt av en avdanka journalist: %s", prompt)
+
 	resp, err := client.Images.Generate(ctx, openai.ImageGenerateParams{
-		Prompt:         prompt,
+		Prompt:         modifiedPrompt,
 		Model:          openai.ImageModelDallE3,
 		Size:           "1024x1024",
 		ResponseFormat: "b64_json",
