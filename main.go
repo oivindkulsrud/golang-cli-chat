@@ -3,10 +3,13 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -29,6 +32,7 @@ type Message struct {
 
 const (
 	chatsDir     = "chats"
+	imagesDir    = "images"
 	systemPrompt = "Du er en frekk, ubehøvlet, avdanka journalist som svarer med en syrlig tone. Du skal ikke være hjelpsm eller høflig selv om jeg ber om det."
 	defaultModel = "gpt-3.5-turbo"
 )
@@ -43,6 +47,10 @@ func main() {
 
 	if err := os.MkdirAll(chatsDir, 0755); err != nil {
 		fmt.Printf("Error creating chats directory: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.MkdirAll(imagesDir, 0755); err != nil {
+		fmt.Printf("Error creating images directory: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -78,14 +86,15 @@ func main() {
 		conv.addMessage("user", userInput)
 
 		if strings.Contains(strings.ToLower(userInput), "visualiser") {
-			fmt.Println("Assistant: Generating image...")
-			imageURL, err := generateImage(ctx, client, userInput)
+			fmt.Println("Assistant: Generating and saving image...")
+			imagePath, err := generateImage(ctx, client, userInput)
 			if err != nil {
 				fmt.Printf("Error generating image: %v\n", err)
 				continue
 			}
-			fmt.Printf("Assistant: Here is your image: %s\n\n", imageURL)
-			conv.addMessage("assistant", imageURL)
+			fmt.Printf("Assistant: Image saved to: %s\n\n", imagePath)
+			openFile(imagePath)
+			conv.addMessage("assistant", fmt.Sprintf("Generated image: %s", imagePath))
 			if err := conv.save(); err != nil {
 				fmt.Printf("Warning: Failed to save conversation: %v\n", err)
 			}
@@ -202,9 +211,8 @@ func generateImage(ctx context.Context, client openai.Client, prompt string) (st
 	resp, err := client.Images.Generate(ctx, openai.ImageGenerateParams{
 		Prompt:         prompt,
 		Model:          openai.ImageModelDallE3,
-		N:              openai.F(int64(1)),
 		Size:           "1024x1024",
-		ResponseFormat: "url",
+		ResponseFormat: "b64_json",
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to create image: %w", err)
@@ -214,5 +222,34 @@ func generateImage(ctx context.Context, client openai.Client, prompt string) (st
 		return "", fmt.Errorf("no image data in response")
 	}
 
-	return resp.Data[0].URL, nil
+	imgData, err := base64.StdEncoding.DecodeString(resp.Data[0].B64JSON)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode base64 image: %w", err)
+	}
+
+	fileName := fmt.Sprintf("img_%d.png", time.Now().Unix())
+	filePath := filepath.Join(imagesDir, fileName)
+
+	err = os.WriteFile(filePath, imgData, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write image to file: %w", err)
+	}
+
+	return filePath, nil
+}
+
+func openFile(path string) {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default: // "linux", "freebsd", "openbsd", "netbsd"
+		cmd = exec.Command("xdg-open", path)
+	}
+	err := cmd.Start()
+	if err != nil {
+		fmt.Printf("Failed to open file: %v\n", err)
+	}
 }
