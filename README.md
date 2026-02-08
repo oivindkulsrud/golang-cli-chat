@@ -74,7 +74,7 @@ All conversations are automatically saved to the `chats` directory as XML files 
 You can modify the following constants in `main.go`:
 
 - `systemPrompt`: The initial system prompt sent to the AI
-- `defaultModel`: The OpenAI model to use (default: "gpt-3.5-turbo")
+- `defaultModel`: The OpenAI model to use (default: "gpt-5")
 - `chatsDir`: Directory where conversations are saved (default: "chats")
 
 ## License
