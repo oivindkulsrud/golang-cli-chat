@@ -30,7 +30,7 @@ type Message struct {
 const (
 	chatsDir     = "chats"
 	systemPrompt = "You are a helpful assistant. Provide clear, concise, and accurate responses."
-	defaultModel = "gpt-3.5-turbo"
+	defaultModel = "gpt-5"
 )
 
 func main() {
